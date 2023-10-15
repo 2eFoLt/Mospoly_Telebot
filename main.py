@@ -33,12 +33,12 @@ async def process_start_command(message: types.Message):
     await message.answer(text=result)
 
 
-@dp.callback_query_handler(lambda x: x.data and x.data in 'К вопросам')
+@dp.callback_query_handler(lambda x: x.data and x.data in "К вопросам")
 async def QandA(callback_query: types.CallbackQuery):
-    questions = text(bold('Вопрос 1: '),
-                     '\nОтвет: ',
-                     bold('\n\nВопрос 2: '),
-                     '\nОтвет: ', )
+    questions = text(bold("Вопрос 1: "),
+                     "\nОтвет: ",
+                     bold("\n\nВопрос 2: "),
+                     "\nОтвет: ",)
 
     await bot.send_message(callback_query.message.chat.id, questions, parse_mode="MARKDOWN")
     await callback_query.answer()
