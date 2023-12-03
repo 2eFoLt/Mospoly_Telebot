@@ -1,12 +1,13 @@
 from aiogram import types, executor
 from create_bot import dp, bot
-from inline import keyboard_main, keyboard_questions
+from inline import keyboard_main
 from aiogram.utils.markdown import *
-from answers import answers_database
+from database import db_func
 
 
 async def on_startup(_):
     print("Я запустился!")
+    db_func.sql_start()
 
 
 HELP_MESSAGE = """Данный бот является помощником для иностранных студентов
@@ -34,26 +35,26 @@ async def process_start_command(message: types.Message):
     await message.answer(text=result)
 
 
-@dp.callback_query_handler(lambda x: x.data and x.data in "К вопросам")
-async def QandA(callback_query: types.CallbackQuery):
+@dp.callback_query_handler(lambda x: x.data and x.data == "К вопросам")
+async def show_questions(callback_query: types.CallbackQuery):
+    questions = db_func.get_questions()
+
+    keyboard_questions = types.InlineKeyboardMarkup(row_width=1)
+    for question_id, question_text in questions:
+        keyboard_questions.add(types.InlineKeyboardButton(text=question_text, callback_data=f"question:{question_id}"))
+
     await bot.send_message(callback_query.message.chat.id, text='Список вопросов:', reply_markup=keyboard_questions)
     await callback_query.answer()
-    # questions = text(bold("Вопрос 1: "),
-    #                  "\nОтвет: ",
-    #                  bold("\n\nВопрос 2: "),
-    #                  "\nОтвет: ", )
-    #
-    # await bot.send_message(callback_query.message.chat.id, questions, parse_mode="MARKDOWN")
-    # await callback_query.answer()
 
 
-@dp.callback_query_handler(lambda x: x.data.startswith('q'))
-async def process_question(callback_query: types.CallbackQuery):
-    question_number = callback_query.data[1:]
+@dp.callback_query_handler(lambda x: x.data and x.data.startswith("question:"))
+async def show_answers(callback_query: types.CallbackQuery):
+    question_id = int(callback_query.data.split(":")[1])
 
-    answer = answers_database.get(question_number, 'Ответ не найден')
+    answers = db_func.get_answers(question_id)
 
-    await bot.send_message(callback_query.message.chat.id, f"Ответ: {answer}")
+    answer_text = "\n".join(answer for (answer,) in answers)
+    await bot.send_message(callback_query.message.chat.id, text=f'Ответ на вопрос {answer_text}')
     await callback_query.answer()
 
 
