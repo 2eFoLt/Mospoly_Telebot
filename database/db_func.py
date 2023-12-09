@@ -7,14 +7,20 @@ def sql_start():
     base = mysql.connector.connect(**db_conf)
     cur = base.cursor()
     if base:
-        print('Data base connected OK!')
+        print('Database connected OK!')
 
 
-def get_questions():
-    query = cur.execute("SELECT idquestions_ru, questions_ru FROM questions_ru")
-    return query
+def get_questions(language):
+    table_name = f"questions_{language}"
+    query = f"SELECT idquestions_{language}, questions_{language} FROM {table_name}"
+    cur.execute(query)
+    questions = cur.fetchall() if cur else []
+    return questions
 
 
-def get_answers(idanswers_ru):
-    query = cur.execute(f"SELECT answers_ru FROM 'answers_ru' WHERE idanswers_ru = {idanswers_ru}")
-    return query
+def get_answers(question_id, language):
+    table_name = f"answers_{language}"
+    query = f"SELECT answers_{language} FROM {table_name} WHERE idanswers_{language} = {question_id}"
+    cur.execute(query)
+    answers = cur.fetchall() if cur else []
+    return answers

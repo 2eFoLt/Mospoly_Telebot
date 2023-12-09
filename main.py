@@ -1,8 +1,9 @@
 from aiogram import types, executor
 from create_bot import dp, bot
-from inline import keyboard_main
+from inline import keyboard_main, language_keyboard
 from aiogram.utils.markdown import *
 from database import db_func
+from aiogram.dispatcher import FSMContext
 
 
 async def on_startup(_):
@@ -35,26 +36,48 @@ async def process_start_command(message: types.Message):
     await message.answer(text=result)
 
 
-@dp.callback_query_handler(lambda x: x.data and x.data == "К вопросам")
-async def show_questions(callback_query: types.CallbackQuery):
-    questions = db_func.get_questions()
+@dp.callback_query_handler(lambda x: x.data and x.data == "Смена языка")
+async def change_language_button(callback_query: types.CallbackQuery):
+    await bot.send_message(callback_query.message.chat.id, text='Выберите язык:', reply_markup=language_keyboard)
+    await callback_query.answer()
 
-    keyboard_questions = types.InlineKeyboardMarkup(row_width=1)
-    for question_id, question_text in questions:
-        keyboard_questions.add(types.InlineKeyboardButton(text=question_text, callback_data=f"question:{question_id}"))
 
-    await bot.send_message(callback_query.message.chat.id, text='Список вопросов:', reply_markup=keyboard_questions)
+@dp.callback_query_handler(lambda x: x.data and x.data.startswith("change_language:"))
+async def change_language(callback_query: types.CallbackQuery, state: FSMContext):
+    language_code = callback_query.data.split(":")[1]
+
+    await state.update_data(chosen_language=language_code)
+
+    await bot.send_message(callback_query.message.chat.id, text=f'Язык изменен на {language_code}. \nВыбирайте нужный раздел:', reply_markup=keyboard_main)
     await callback_query.answer()
 
 
 @dp.callback_query_handler(lambda x: x.data and x.data.startswith("question:"))
-async def show_answers(callback_query: types.CallbackQuery):
+async def show_answers(callback_query: types.CallbackQuery, state: FSMContext):
     question_id = int(callback_query.data.split(":")[1])
 
-    answers = db_func.get_answers(question_id)
+    state_data = await state.get_data()
+    current_language = state_data.get("chosen_language", "ru")
+
+    answers = db_func.get_answers(question_id, current_language)
 
     answer_text = "\n".join(answer for (answer,) in answers)
-    await bot.send_message(callback_query.message.chat.id, text=f'Ответ на вопрос {answer_text}')
+    await bot.send_message(callback_query.message.chat.id, text=f'{answer_text}')
+    await callback_query.answer()
+
+
+@dp.callback_query_handler(lambda x: x.data and x.data in 'К вопросам')
+async def show_questions(callback_query: types.CallbackQuery, state: FSMContext):
+    user_data = await state.get_data()
+    current_language = user_data.get("chosen_language", "ru")
+
+    questions = db_func.get_questions(current_language)
+
+    keyboard_questions = types.InlineKeyboardMarkup(row_width=1)
+    for idquestions, question_text in questions:
+        keyboard_questions.add(types.InlineKeyboardButton(text=question_text, callback_data=f"question:{idquestions}"))
+
+    await bot.send_message(callback_query.message.chat.id, text='Список вопросов:', reply_markup=keyboard_questions)
     await callback_query.answer()
 
 

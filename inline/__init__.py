@@ -1,2 +1,2 @@
-from .inline import keyboard_main, keyboard_questions
+from .inline import keyboard_main, language_keyboard
 
