@@ -1,3 +1,5 @@
+import os
+
 from aiogram import types, executor
 from create_bot import dp, bot
 from inline import keyboard_main, language_keyboard
@@ -40,6 +42,22 @@ async def process_start_command(message: types.Message):
 async def change_language_button(callback_query: types.CallbackQuery):
     await bot.send_message(callback_query.message.chat.id, text='Выберите язык:', reply_markup=language_keyboard)
     await callback_query.answer()
+
+
+@dp.callback_query_handler(lambda x: x.data == 'Гайд')
+async def process_download_file(callback_query: types.CallbackQuery):
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    file_name = 'Гайд_для_проживающих_в_общежитии.pdf'
+    file_path = os.path.join(script_dir, file_name)
+
+    if os.path.exists(file_path):
+        with open(file_path, 'rb') as file:
+            await bot.send_document(callback_query.from_user.id, file)
+            await callback_query.answer()
+    else:
+        await bot.send_message(callback_query.from_user.id, "Файл не найден")
+        await callback_query.answer()
 
 
 @dp.callback_query_handler(lambda x: x.data and x.data.startswith("change_language:"))
