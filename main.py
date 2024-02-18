@@ -29,6 +29,11 @@ for item in my_list:
 
 @dp.message_handler(commands=['start'])
 async def process_start_command(message: types.Message):
+    user_id = message.from_user.id
+    # Сохраняем user_id в базе данных
+    sql_query = "INSERT INTO logs (login) VALUES (%s)"
+    data = (user_id,)
+    db_func.entry_user_id(sql_query, data)
     await message.reply("Привет! Выбирайте нужный Вам раздел", reply_markup=keyboard_main)
 
 
