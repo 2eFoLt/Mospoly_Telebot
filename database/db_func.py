@@ -29,6 +29,7 @@ def get_answers(question_id, language):
     answers = cur.fetchall() if cur else []
     return answers
 
+
 def entry_user_id(sql_query, data):
     # Проверяем, существует ли уже user_id в таблице
     sql_check_query = "SELECT login FROM logs WHERE login = %s"
@@ -44,4 +45,3 @@ def entry_user_id(sql_query, data):
             base_log.commit()
         except mysql.connector.Error as err:
             print(f"Error: {err}")
-

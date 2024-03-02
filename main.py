@@ -2,7 +2,7 @@ import os
 
 from aiogram import types, executor
 from create_bot import dp, bot
-from inline import keyboard_main, language_keyboard
+from inline import keyboard_main_ru, keyboard_main_en, keyboard_main_es, language_keyboard
 from aiogram.utils.markdown import *
 from database import db_func
 from aiogram.dispatcher import FSMContext
@@ -26,6 +26,18 @@ result = ""
 for item in my_list:
     result += f"\u2022 {item}\n"
 
+language_phrases = {
+    'ru': 'Выберите язык:',
+    'en': 'Choose a language:',
+    'es': 'Elija un idioma:'
+}
+
+change_language_phrases = {
+    'ru': 'Язык изменен на русский. Выбирайте нужный раздел:',
+    'en': 'Language changed to English. Choose the desired section:',
+    'es': 'Idioma cambiado a español. Elija la sección deseada:'
+}
+
 
 @dp.message_handler(commands=['start'])
 async def process_start_command(message: types.Message):
@@ -34,7 +46,7 @@ async def process_start_command(message: types.Message):
     sql_query = "INSERT INTO logs (login) VALUES (%s)"
     data = (user_id,)
     db_func.entry_user_id(sql_query, data)
-    await message.reply("Привет! Выбирайте нужный Вам раздел", reply_markup=keyboard_main)
+    await message.reply("Привет! Выбирайте нужный Вам раздел", reply_markup=keyboard_main_ru)
 
 
 @dp.message_handler(commands=['help'])
@@ -43,17 +55,35 @@ async def process_start_command(message: types.Message):
     await message.answer(text=result)
 
 
-@dp.callback_query_handler(lambda x: x.data and x.data == "Смена языка")
-async def change_language_button(callback_query: types.CallbackQuery):
-    await bot.send_message(callback_query.message.chat.id, text='Выберите язык:', reply_markup=language_keyboard)
+@dp.callback_query_handler(lambda x: x.data and x.data in ['Смена языка', 'Change language', 'Cambio de idioma'])
+async def change_language_button(callback_query: types.CallbackQuery, state: FSMContext):
+    # Получаем текущий язык из состояния
+    data = await state.get_data()
+    chosen_language = data.get('chosen_language', 'ru')  # Если язык не выбран, используем русский
+
+    # Получаем фразу для текущего языка
+    message_text = language_phrases.get(chosen_language, 'Выберите язык:')
+
+    await bot.send_message(callback_query.message.chat.id, text=message_text, reply_markup=language_keyboard)
     await callback_query.answer()
 
 
-@dp.callback_query_handler(lambda x: x.data == 'Гайд')
-async def process_download_file(callback_query: types.CallbackQuery):
+@dp.callback_query_handler(lambda x: x.data and x.data in ['Гайд', 'Guide to the hostels', 'Guía de los albergues'])
+async def process_download_file(callback_query: types.CallbackQuery, state: FSMContext):  # Добавьте параметр state
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
-    file_name = 'Гайд_для_проживающих_в_общежитии.pdf'
+    # Получаем текущий язык из состояния
+    data = await state.get_data()
+    chosen_language = data.get('chosen_language', 'ru')  # Если язык не выбран, используем русский
+
+    # Формируем имя файла в зависимости от текущего языка
+    if chosen_language == 'en':
+        file_name = 'Guide_for_hostel_residents.pdf'
+    elif chosen_language == 'es':
+        file_name = 'Guía_para_residentes_de_albergues.pdf'
+    else:
+        file_name = 'Гайд_для_проживающих_в_общежитии.pdf'
+
     file_path = os.path.join(script_dir, file_name)
 
     if os.path.exists(file_path):
@@ -69,9 +99,20 @@ async def process_download_file(callback_query: types.CallbackQuery):
 async def change_language(callback_query: types.CallbackQuery, state: FSMContext):
     language_code = callback_query.data.split(":")[1]
 
+    # Определяем, какую клавиатуру использовать в зависимости от языка
+    if language_code == 'en':
+        keyboard_main = keyboard_main_en
+    elif language_code == 'es':
+        keyboard_main = keyboard_main_es
+    else:
+        keyboard_main = keyboard_main_ru  # Если указан неверный язык, используем русскую клавиатуру
+
+    # Получаем фразу для текущего языка при изменении языка
+    message_text = change_language_phrases.get(language_code, 'Язык изменен. Выбирайте нужный раздел:')
+
     await state.update_data(chosen_language=language_code)
 
-    await bot.send_message(callback_query.message.chat.id, text=f'Язык изменен на {language_code}. \nВыбирайте нужный раздел:', reply_markup=keyboard_main)
+    await bot.send_message(callback_query.message.chat.id, text=message_text, reply_markup=keyboard_main)
     await callback_query.answer()
 
 
@@ -89,7 +130,7 @@ async def show_answers(callback_query: types.CallbackQuery, state: FSMContext):
     await callback_query.answer()
 
 
-@dp.callback_query_handler(lambda x: x.data and x.data in 'К вопросам')
+@dp.callback_query_handler(lambda x: x.data and x.data in ['К вопросам', 'Questions', 'Preguntas'])
 async def show_questions(callback_query: types.CallbackQuery, state: FSMContext):
     user_data = await state.get_data()
     current_language = user_data.get("chosen_language", "ru")
@@ -105,7 +146,7 @@ async def show_questions(callback_query: types.CallbackQuery, state: FSMContext)
 
 
 # кнопка "К номерам"
-@dp.callback_query_handler(lambda x: x.data and x.data in 'К номерам')
+@dp.callback_query_handler(lambda x: x.data and x.data in ['К номерам', 'Phone numbers', 'Números de teléfono'])
 async def phone_numbers(callback_query: types.CallbackQuery):
     numbers = text(bold('Приёмная комиссия: '),
                    '\n+7 (495) 223-05-23 ',
@@ -125,7 +166,7 @@ async def phone_numbers(callback_query: types.CallbackQuery):
 
 
 # кнопка "К корпусам"
-@dp.callback_query_handler(lambda x: x.data and x.data in 'К корпусам')
+@dp.callback_query_handler(lambda x: x.data and x.data in ['К корпусам', 'Student body', 'Cuerpo de estudiantes'])
 async def academic_buildings(callback_query: types.CallbackQuery):
     acbuilds = text(bold("Адрес кампуса на Большой Семёновской: "),
                     "\nучебные корпуса «А», «Б», «В», «Н», «НД» ",
