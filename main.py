@@ -132,7 +132,12 @@ async def show_answers(callback_query: types.CallbackQuery, state: FSMContext):
     answers = db_func.get_answers(question_id, current_language)
 
     answer_text = "\n".join(answer for (answer,) in answers)
-    await bot.send_message(callback_query.message.chat.id, text=f'{answer_text}')
+    answer_message = await bot.send_message(callback_query.message.chat.id, text=f'{answer_text}')
+    answer_message_id = answer_message.message_id
+    async with state.proxy() as data:
+        questions_message_id = data['ref1']
+    if (int(answer_message_id) - int(questions_message_id)) > 1:
+        await callback_query.bot.delete_message(callback_query.message.chat.id, answer_message_id - 1)
     await callback_query.answer()
 
 
@@ -146,8 +151,10 @@ async def show_questions(callback_query: types.CallbackQuery, state: FSMContext)
     keyboard_questions = types.InlineKeyboardMarkup(row_width=1)
     for idquestions, question_text in questions:
         keyboard_questions.add(types.InlineKeyboardButton(text=question_text, callback_data=f"question:{idquestions}"))
-
-    await bot.send_message(callback_query.message.chat.id, text='Список вопросов:', reply_markup=keyboard_questions)
+    questions_message = await bot.send_message(callback_query.message.chat.id, text='Список вопросов:',
+                                               reply_markup=keyboard_questions)
+    async with state.proxy() as data:
+        data['ref1'] = questions_message.message_id
     await callback_query.answer()
 
 
