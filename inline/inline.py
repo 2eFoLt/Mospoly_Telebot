@@ -27,15 +27,6 @@ button_category_es5 = InlineKeyboardButton('📖Cambio de idioma📖', callback_
 keyboard_main_es = InlineKeyboardMarkup(row_width=1)
 keyboard_main_es.add(button_category_es1, button_category_es2, button_category_es3, button_category_es4, button_category_es5)
 
-button_category_ar1 = InlineKeyboardButton('💡قائمة الاسئلة💡', callback_data='قائمة الاسئلة')
-button_category_ar2 = InlineKeyboardButton('📞جهات الاتصال📞', callback_data='جهات الاتصال')
-button_category_ar3 = InlineKeyboardButton('⛪قائمة المباني⛪', callback_data='قائمة المباني')
-button_category_ar4 = InlineKeyboardButton('🏢دليل النزل🏢', callback_data='دليل النزل')
-button_category_ar5 = InlineKeyboardButton('📖تغير اللغة📖', callback_data='تغير اللغة')
-
-keyboard_main_ar = InlineKeyboardMarkup(row_width=1)
-keyboard_main_ar.add(button_category_ar1, button_category_ar2, button_category_ar3, button_category_ar4, button_category_ar5)
-
 language_keyboard = InlineKeyboardMarkup()
 language_keyboard.add(InlineKeyboardButton(text="Русский", callback_data="change_language:ru"))
 language_keyboard.add(InlineKeyboardButton(text="English", callback_data="change_language:en"))
