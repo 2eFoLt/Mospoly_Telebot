@@ -2,7 +2,7 @@ import os
 
 from aiogram import types, executor
 from create_bot import dp, bot
-from inline import keyboard_main_ru, keyboard_main_en, keyboard_main_es, language_keyboard
+from inline import keyboard_main_ru, keyboard_main_en, keyboard_main_es, keyboard_main_ar, language_keyboard
 from aiogram.utils.markdown import *
 from database import db_func
 from aiogram.dispatcher import FSMContext
@@ -29,13 +29,15 @@ for item in my_list:
 language_phrases = {
     'ru': 'Выберите язык:',
     'en': 'Choose a language:',
-    'es': 'Elija un idioma:'
+    'es': 'Elija un idioma:',
+    'ar': ':اختر اللغة'
 }
 
 change_language_phrases = {
     'ru': 'Язык изменен на русский. Выбирайте нужный раздел:',
     'en': 'Language changed to English. Choose the desired section:',
-    'es': 'Idioma cambiado a español. Elija la sección deseada:'
+    'es': 'Idioma cambiado a español. Elija la sección deseada:',
+    'ar': 'تم تغيير اللغة إلى العربية . اختر القسم المطلوب:'
 }
 
 
@@ -55,7 +57,7 @@ async def process_start_command(message: types.Message):
     await message.answer(text=result)
 
 
-@dp.callback_query_handler(lambda x: x.data and x.data in ['Смена языка', 'Change language', 'Cambio de idioma'])
+@dp.callback_query_handler(lambda x: x.data and x.data in ['Смена языка', 'Change language', 'Cambio de idioma', 'تغير اللغة'])
 async def change_language_button(callback_query: types.CallbackQuery, state: FSMContext):
     # Получаем текущий язык из состояния
     data = await state.get_data()
@@ -68,7 +70,7 @@ async def change_language_button(callback_query: types.CallbackQuery, state: FSM
     await callback_query.answer()
 
 
-@dp.callback_query_handler(lambda x: x.data and x.data in ['Гайд', 'Guide to the hostels', 'Guía de los albergues'])
+@dp.callback_query_handler(lambda x: x.data and x.data in ['Гайд', 'Guide to the hostels', 'Guía de los albergues', 'دليل النزل'])
 async def process_download_file(callback_query: types.CallbackQuery, state: FSMContext):  # Добавьте параметр state
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -81,6 +83,8 @@ async def process_download_file(callback_query: types.CallbackQuery, state: FSMC
         file_name = 'Guide_for_hostel_residents.pdf'
     elif chosen_language == 'es':
         file_name = 'Guía_para_residentes_de_albergues.pdf'
+    elif chosen_language == 'ar':
+        file_name = 'دليل للمقيمين في النزل.pdf'
     else:
         file_name = 'Гайд_для_проживающих_в_общежитии.pdf'
 
@@ -104,6 +108,8 @@ async def change_language(callback_query: types.CallbackQuery, state: FSMContext
         keyboard_main = keyboard_main_en
     elif language_code == 'es':
         keyboard_main = keyboard_main_es
+    elif language_code == 'ar':
+        keyboard_main = keyboard_main_ar
     else:
         keyboard_main = keyboard_main_ru  # Если указан неверный язык, используем русскую клавиатуру
 
