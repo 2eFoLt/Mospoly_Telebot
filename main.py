@@ -148,6 +148,24 @@ async def change_language(callback_query: types.CallbackQuery, state: FSMContext
     await bot.send_message(callback_query.message.chat.id, text=message_text, reply_markup=keyboard_main)
     await callback_query.answer()
 
+# Обработчик вывода ответа на нужный вопрос
+@dp.callback_query_handler(lambda x: x.data and x.data.startswith("question:"))
+async def show_answers(callback_query: types.CallbackQuery, state: FSMContext):
+    question_id = int(callback_query.data.split(":")[1])
+
+    state_data = await state.get_data()
+    current_language = state_data.get("chosen_language", "ru")
+
+    answers = db_func.get_answers(question_id, current_language)
+
+    answer_text = "\n".join(answer for (answer,) in answers)
+    answer_message = await bot.send_message(callback_query.message.chat.id, text=f'{answer_text}')
+    answer_message_id = answer_message.message_id
+    async with state.proxy() as data:
+        questions_message_id = data['ref1']
+    if (int(answer_message_id) - int(questions_message_id)) > 1:
+        await callback_query.bot.delete_message(callback_query.message.chat.id, answer_message_id - 1)
+    await callback_query.answer()
 
 # Обработчик нажатия кнопки "К вопросам"
 @dp.callback_query_handler(lambda x: x.data and x.data in ['К вопросам', 'Questions', 'Preguntas'])
@@ -175,22 +193,63 @@ async def show_questions(callback_query: types.CallbackQuery, state: FSMContext)
 
 # Обработчик нажатия кнопки "К номерам"
 @dp.callback_query_handler(lambda x: x.data and x.data in ['К номерам', 'Phone numbers', 'Números de teléfono'])
-async def phone_numbers(callback_query: types.CallbackQuery):
+async def phone_numbers(callback_query: types.CallbackQuery, state: FSMContext):
+    # Получаем текущий язык из состояния
+    data = await state.get_data()
+    chosen_language = data.get('chosen_language', 'ru')  # Если язык не выбран, используем русский
     # Список телефонных номеров и контактов
-    numbers = text(
-        bold('Приёмная комиссия: '),
-        '\n+7 (495) 223-05-23 ',
-        '\n+7 (495) 276-37-37 ',
-        '\n8 (800) 550-91-42 ',
-        bold('\n\nМногофункциональный центр: '),
-        '\n+7 (495) 223-05-23 ',
-        italic('\nДобавочные номера: '),
-        '\nАППАРАТ РЕКТОРА - Руководитель аппарата ректора - Шолохов Олег Викторович : 1102 ',
-        '\nПРОРЕКТОР ПО МЕЖДУНАРОДНОЙ ДЕЯТЕЛНОСТИ - Помощник проректора - Гладышева Ирина Юрьевна : 1020 ',
-        '\nПРОРЕКТОР ПО ВОСПИТАТЕЛЬНОЙ И СОЦИАЛЬНОЙ РАБОТЕ - Помощник проректора - Мазикина Ирина Игоревна : 1272 ',
-        '\nМОБИЛИЗАЦИОННЫЙ ОТДЕЛ - Начальник отдела - Колесников Валерий Алексеевич : 1025 ',
-        '\nПРИЕМНАЯ КОМИССИЯ - общий номер : 1640 ',
-    )
+    if chosen_language == 'en':
+        numbers = text(bold('Admissions Committee: '),
+                       '\n+7 (495) 223-05-23 ',
+                       '\n+7 (495) 276-37-37 ',
+                       '\n8 (800) 550-91-42 ',
+                       bold('\n\nMultifunctional Center: '),
+                       '\n+7 (495) 223-05-23 ',
+                       italic('\nExtension numbers: '),
+                       '\nRECTOR’S OFFICE – Chief of rector’s office – Sholokhov Oleg Viktorovich: 1102 ',
+                       '\nVICE-RECTOR FOR INTERNATIONAL ACTIVITIES – Assistant to the vice-rector – Gladyshova Irina Yuryevna: 1020 ',
+                       '\nVICE-RECTOR FOR EDUCATIONAL AND SOCIAL WORK – Assistant to the vice-rector – Mazikina Irina Igorevna: 1272 ',
+                       '\nMOBILIZATION DEPARTMENT – Department head – Kolesnikov Valeriy Alexeevich: 1025 ',
+                       '\nADMISSIONS COMMITTEE – general number: 1640 ', )
+    elif chosen_language == 'es':
+        numbers = text(bold('Comité de Admisiones: '),
+                       '\n+7 (495) 223-05-23 ',
+                       '\n+7 (495) 276-37-37 ',
+                       '\n8 (800) 550-91-42 ',
+                       bold('\n\nCentro Multifuncional: '),
+                       '\n+7 (495) 223-05-23 ',
+                       italic('\nNúmeros de extensión: '),
+                       '\nOFICINA DEL RECTOR-Jefe de la oficina del rector-Sholokhov Oleg Viktorovich: 1102 ',
+                       '\nVICERRECTORA DE ACTIVIDADES INTERNACIONALES-Asistente de la vicerrectora-Gladyshova Irina Yuryevna: 1020 ',
+                       '\nVICERRECTORA DE EDUCACIÓN Y TRABAJO SOCIAL-Asistente del vicerrector-Mazikina Irina Igorevna: 1272 ',
+                       '\nDEPARTAMENTO DE MOVILIZACIÓN-Jefe de departamento-Kolesnikov Valeriy Alexeevich: 1025 ',
+                       '\nCOMITÉ DE ADMISIONES-número general: 1640 ', )
+    elif chosen_language == 'ar':
+        numbers = text(bold('لجنة القبول: '),
+                       '\n+7 (495) 223-05-23 ',
+                       '\n+7 (495) 276-37-37 ',
+                       '\n8 (800) 550-91-42 ',
+                       bold('\n\nالمركز متعدد الوظائف: '),
+                       '\n+7 (495) 223-05-23 ',
+                       italic('\nأرقام التحويل: '),
+                       '\nمكتب الرئيس - شولوخوف أوليج فيكتوروفيتش: 1102 ',
+                       '\nنائب الرئيس للشؤون الدولية - مساعد نائب الرئيس - جلاديشوفا إرينا يوريفنا: 1020 ',
+                       '\nنائب الرئيس للشؤون التعليمية والاجتماعية - مساعد نائب الرئيس - مازيكينا إرينا إيغوريفنا: 1272 ',
+                       '\nقسم التعبئة والإحتراز - رئيس القسم - كوليسنيكوف فاليري أليكسيفيتش: 1025 ',
+                       '\nلجنة القبول - الرقم العام: 1640 ', )
+    else:
+        numbers = text(bold('Приёмная комиссия: '),
+                       '\n+7 (495) 223-05-23 ',
+                       '\n+7 (495) 276-37-37 ',
+                       '\n8 (800) 550-91-42 ',
+                       bold('\n\nМногофункциональный центр: '),
+                       '\n+7 (495) 223-05-23 ',
+                       italic('\nДобавочные номера: '),
+                       '\nАППАРАТ РЕКТОРА - Руководитель аппарата ректора - Шолохов Олег Викторович : 1102 ',
+                       '\nПРОРЕКТОР ПО МЕЖДУНАРОДНОЙ ДЕЯТЕЛЬНОСТИ - Помощник проректора - Гладышева Ирина Юрьевна : 1020 ',
+                       '\nПРОРЕКТОР ПО ВОСПИТАТЕЛЬНОЙ И СОЦИАЛЬНОЙ РАБОТЕ - Помощник проректора - Мазикина Ирина Игоревна : 1272 ',
+                       '\nМОБИЛИЗАЦИОННЫЙ ОТДЕЛ - Начальник отдела - Колесников Валерий Алексеевич : 1025 ',
+                       '\nПРИЕМНАЯ КОМИССИЯ - общий номер : 1640 ', )  # Если указан неверный язык, используем русский
 
     # Отправка сообщения с номерами телефонов и контактами
     await bot.send_message(callback_query.message.chat.id, numbers, parse_mode="MARKDOWN")
@@ -199,27 +258,91 @@ async def phone_numbers(callback_query: types.CallbackQuery):
 
 # Обработчик нажатия кнопки "К корпусам"
 @dp.callback_query_handler(lambda x: x.data and x.data in ['К корпусам', 'Student body', 'Cuerpo de estudiantes'])
-async def academic_buildings(callback_query: types.CallbackQuery):
+async def academic_buildings(callback_query: types.CallbackQuery, state: FSMContext):
+    # Получаем текущий язык из состояния
+    data = await state.get_data()
+    chosen_language = data.get('chosen_language', 'ru')  # Если язык не выбран, используем русский
     # Список адресов учебных корпусов
-    acbuilds = text(
-        bold("Адрес кампуса на Большой Семёновской: "),
-        "\nучебные корпуса «А», «Б», «В», «Н», «НД» ",
-        "\nст. м. «Электрозаводская» или ж/д станция Электрозаводская, ул. Б. Семёновская, д. 38. ",
-        bold("\n\nАдрес учебного корпуса на станции метро «Автозаводская»: "),
-        "\n115280, г. Москва, ул. Автозаводская, д. 16 (ст. м. «Автозаводская»). ",
-        bold("\n\nАдрес учебного корпуса на станции метро «ВДНХ»: "),
-        "\nул. Павла Корчагина, д. 22. ",
-        bold("\n\nАдрес учебного корпуса на улице Прянишникова: "),
-        "\n127550, г. Москва, ул. Прянишникова, 2А Корпуса 1, 2 ",
-        bold("\n\nАдрес учебного корпуса на улице Михалковская: "),
-        "\n125493, г. Москва, ул. Михалковская, д. 7 ",
-        bold("\n\nАдрес учебного корпуса на улице Садовая-Спасская: "),
-        "\n07045, г. Москва, ул. Садовая-Спасская, д. 6 (ст. м. «Сухаревская») ",
-        bold("\n\nАдрес учебного корпуса на станции метро «Авиамоторная»: "),
-        "\n111250, г. Москва, ул. Лефортовский вал, д. 26 (ст. м. «Авиамоторная») ",
-        bold("\n\nАдрес учебного корпуса «Д» и общежития № 3: "),
-        "\nст. м. «Дубровка», ул. 1-я Дубровская, д. 16а. ",
-    )
+    if chosen_language == 'en':
+        acbuilds = text(
+            bold("The address of the campus on Bolshaya Semyonovskaya street: «Н»"),
+            "\nacademic buildings «A», «B», «C», «N», «ND» ",
+            "\nmetro station «Elektrozavodskaya» or railway station Elektrozavodskaya, B. Semyonovskaya str., 38. ",
+            bold("\n\nThe address of the educational building at the Avtozavodskaya metro station: "),
+            "\n115280, Moscow, Avtozavodskaya str., 16 (Avtozavodskaya metro station). ",
+            bold("\n\nThe address of the educational building at the VDNKh metro station: "),
+            "\nPavel Korchagin str., 22. ",
+            bold("\n\nThe address of the educational building on Pryanishnikova Street: "),
+            "\n127550, Moscow, Pryanishnikova str., 2A Buildings 1, 2 ",
+            bold("\n\nThe address of the educational building on Mikhalkovskaya Street: "),
+            "\n125493, Moscow, Mikhalkovskaya str., 7 ",
+            bold("\n\nThe address of the academic building on Sadovaya-Spasskaya Street: "),
+            "\n07045, Moscow, Sadovaya-Spasskaya str., 6 (Sukharevskaya metro station) ",
+            bold("\n\nThe address of the educational building at the Aviamotornaya metro station: "),
+            "\n111250, Lefortovsky Val str., Moscow, 111250 (Aviamotornaya metro station) ",
+            bold("\n\nThe address of the educational building «D» and dormitory No. 3: "),
+            "\nmetro station «Dubrovka», 1-ya Dubrovskaya str., 16a ",
+        )
+    elif chosen_language == 'es':
+        acbuilds = text(
+            bold("La dirección del campus en la calle Bolshaya Semyonovskaya: "),
+            "\nedificios académicos «A», «B», «C», «N», «ND» ",
+            "\nestación de metro «Elektrozavodskaya» o estación de tren Elektrozavodskaya, B. Semyonovskaya str., 38. ",
+            bold("\n\nLa dirección del edificio educativo en la estación de metro Avtozavodskaya: "),
+            "\n115280, Moscú, Avtozavodskaya str., 16 (estación de metro Avtozavodskaya). ",
+            bold("\n\nLa dirección del edificio educativo en la estación de metro VDNKh: "),
+            "\nPavel Korchagin str., 22. ",
+            bold("\n\nLa dirección del edificio educativo en la calle Pryanishnikova: "),
+            "\n127550, Moscú, calle Pryanishnikova., 2A Edificios 1, 2 ",
+            bold("\n\nLa dirección del edificio educativo en la calle Mikhalkovskaya: "),
+            "\n125493, Moscú, calle Mikhalkovskaya., 7 ",
+            bold("\n\nLa dirección del edificio académico en la calle Sadovaya-Spasskaya: "),
+            "\n07045, Moscú, calle Sadovaya-Spasskaya., 6 (Estación de metro Sukharevskaya) ",
+            bold("\n\nLa dirección del edificio educativo en la estación de metro Aviamotornaya: "),
+            "\nCalle Lefortovsky Val, 26., Moscú, 111250 (estación de metro Aviamotornaya) ",
+            bold("\n\nLa dirección del edificio educativo « D  y dormitorio No. 3: "),
+            "\nestación de metro «Dubrovka», 1-ya Dubrovskaya str., 16a ",
+        )
+    elif chosen_language == 'ar':
+        acbuilds = text(
+            bold("عنوان الحرم الجامعي على شارع بولشايا سيميونوفسكايا: "),
+            "\n«مباني أكاديمية «أ»، «ب»، «ج»، »إن»، »إن دي ",
+            "\nمحطة المترو «إليكتروزافودسكايا» أو محطة السكك الحديدية إليكتروزافودسكايا، شارع ب. سيميونوفسكايا، 38. ",
+            bold("\n\nعنوان المبنى التعليمي في محطة مترو أفتوزافودسكايا: "),
+            "\n115280، موسكو، شارع أفتوزافودسكايا، 16 (محطة مترو أفتوزافودسكايا). ",
+            bold("\n\nعنوان المبنى التعليمي في محطة مترو في دي إن خ: "),
+            "\n.شارع بافيل كورتشاجين، 22",
+            bold("\n\n :عنوان المبنى التعليمي في شارع بريانيشنيكوفا"),
+            "\n. 127550، موسكو، شارع بريانيشنيكوفا، 2أ، المباني 1، 2,",
+            bold("\n\nعنوان المبنى التعليمي في شارع ميخالكوفسكايا: "),
+            "\n125493، موسكو، شارع ميخالكوفسكايا، 7. ",
+            bold("\n\nعنوان المبنى الأكاديمي في شارع سادوفايا سباسكايا: "),
+            "\n07045، موسكو، شارع سادوفايا سباسكايا، 6 (محطة مترو سوخاريفسكايا). ",
+            bold("\n\nعنوان المبنى التعليمي في محطة مترو أفياموتورنايا: "),
+            "\n26 شارع ليفورتوفسكي فال، موسكو، 111250 (محطة مترو أفياموتورنايا). ",
+            bold("\n\n:عنوان المبنى التعليمي «دي» والسكن الطلابي رقم 3"),
+            "\n•	محطة المترو «دوبروفكا»، شارع دوبروفسكايا الأولى، 16أ. ",
+        )
+    else:
+        acbuilds = text(
+            bold("Адрес кампуса на Большой Семёновской: "),
+            "\nучебные корпуса «А», «Б», «В», «Н», «НД» ",
+            "\nст. м. «Электрозаводская» или ж/д станция Электрозаводская, ул. Б. Семёновская, д. 38. ",
+            bold("\n\nАдрес учебного корпуса на станции метро «Автозаводская»: "),
+            "\n115280, г. Москва, ул. Автозаводская, д. 16 (ст. м. «Автозаводская»). ",
+            bold("\n\nАдрес учебного корпуса на станции метро «ВДНХ»: "),
+            "\nул. Павла Корчагина, д. 22. ",
+            bold("\n\nАдрес учебного корпуса на улице Прянишникова: "),
+            "\n127550, г. Москва, ул. Прянишникова, 2А Корпуса 1, 2 ",
+            bold("\n\nАдрес учебного корпуса на улице Михалковская: "),
+            "\n125493, г. Москва, ул. Михалковская, д. 7 ",
+            bold("\n\nАдрес учебного корпуса на улице Садовая-Спасская: "),
+            "\n07045, г. Москва, ул. Садовая-Спасская, д. 6 (ст. м. «Сухаревская») ",
+            bold("\n\nАдрес учебного корпуса на станции метро «Авиамоторная»: "),
+            "\n111250, г. Москва, ул. Лефортовский вал, д. 26 (ст. м. «Авиамоторная») ",
+            bold("\n\nАдрес учебного корпуса «Д» и общежития № 3: "),
+            "\nст. м. «Дубровка», ул. 1-я Дубровская, д. 16а. ",
+        )
 
     # Отправка сообщения с адресами учебных корпусов
     await bot.send_message(callback_query.message.chat.id, acbuilds, parse_mode="MARKDOWN")
